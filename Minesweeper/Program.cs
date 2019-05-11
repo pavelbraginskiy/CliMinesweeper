@@ -1,9 +1,60 @@
 ﻿using System;
+using System.Linq;
+using Mono.Options;
 
 namespace Minesweeper {
     public static class Program {
-        public static void Main(string[] args) {
-            _board = new Board(9, 9, 10);
+        public static int Main(string[] args) {
+            var showHelp = false;
+            var showVersion = false;
+            var ascii = false;
+            (int w, int h, int mines) difficulty = (9, 9, 10);
+
+            var options = new OptionSet {
+                {"h|help", "Show this message and exit", h => showHelp = h != null},
+                {"v|version", "Show the version of this CliMinesweeper", v => showVersion = v != null},
+                {"a|ascii", "Draw the gameboard using ASCII characters", a => ascii = a != null},
+                {"c|custom=","Set the games difficulty in the form w,h,m.\n" +
+                                 "E.g., -d 9,9,10 will create a 9x9 board with 10 mines.",
+                    d => {
+                        var ds = d.Split(',').Select(int.Parse).ToArray();
+                        if (ds.Length != 3) {
+                            throw new ArgumentException("Invalid difficulty set");
+                        }
+                        difficulty = (ds[0], ds[1], ds[2]);
+                    }
+                },
+                {
+                    "e|easy", "Set the difficulty to 9,9,10. This is the default difficulty.",
+                    e => difficulty = e != null ? (9,9,10) : difficulty
+                },
+                {
+                    "m|medium", "Set the difficulty to 16,16,40.",
+                    e => difficulty = e != null ? (16,16,40) : difficulty
+                },
+                {
+                    "d|difficult", "Set the difficulty to 30,16,99.",
+                    e => difficulty = e != null ? (30,16,99) : difficulty
+                }
+            };
+            try {
+                options.Parse(args);
+            } catch {
+                showHelp = true;
+            }
+
+            if (showHelp) {
+                Console.WriteLine("Usage: [mono] Minesweeper.exe [switches]");
+                options.WriteOptionDescriptions(Console.Out);
+                return 1;
+            }
+
+            if (showVersion) {
+                Console.WriteLine("This is CliMinesweeper 1.1.");
+                return 1;
+            }
+            
+            _board = new Board(difficulty.h, difficulty.w, difficulty.mines, ascii);
             _board.Draw();
 
             _cursor = (0, 0);
@@ -19,6 +70,8 @@ namespace Minesweeper {
                 Console.WriteLine("You win! Congratulations! Press any key to exit...");
                 Console.ReadKey(true);
             }
+
+            return 0;
         }
 
         private static (int x, int y) _cursor;
